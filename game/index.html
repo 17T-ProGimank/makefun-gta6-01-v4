@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SOLMARA — Open-World Crime Game</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #1a2233;
+    font-family: 'Segoe UI', Arial, Helvetica, sans-serif; color: #fff; }
+  #app, #app canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  #hud { position: fixed; inset: 0; pointer-events: none; z-index: 5; display: none; }
+  #hud.on { display: block; }
+  .panel { background: rgba(10, 14, 24, 0.72); border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 8px; padding: 8px 12px; }
+  #stars { position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+    font-size: 26px; letter-spacing: 4px; color: #ffd23e; text-shadow: 0 0 8px rgba(0,0,0,.7); }
+  #stars .off { color: rgba(255,255,255,.25); }
+  #wanted-label { position: absolute; top: 46px; left: 50%; transform: translateX(-50%);
+    font-size: 11px; letter-spacing: 3px; color: #ffb3b3; }
+  #money { position: absolute; top: 12px; right: 14px; font-size: 24px; font-weight: 800;
+    color: #7dff9a; text-shadow: 0 2px 6px rgba(0,0,0,.8); }
+  #seagull-box { position: absolute; top: 46px; right: 14px; font-size: 13px; font-weight: 700;
+    color: #ffd23e; }
+  #mission-label { position: absolute; top: 12px; left: 14px; font-size: 13px; font-weight: 800;
+    letter-spacing: 1px; color: #fff; }
+  #objective { position: absolute; top: 34px; left: 14px; max-width: 340px; font-size: 14px;
+    color: #ffe9c9; text-shadow: 0 1px 4px rgba(0,0,0,.8); }
+  #district-box { position: absolute; top: 78px; left: 14px; width: 210px; font-size: 12px;
+    font-weight: 700; color: #9fd8ff; }
+  #district-bar { height: 6px; background: rgba(255,255,255,.18); border-radius: 3px;
+    margin-top: 5px; overflow: hidden; }
+  #district-bar-fill { height: 100%; width: 0%; background: #4da3ff; border-radius: 3px; }
+  #time { position: absolute; top: 84px; left: 50%; transform: translateX(-50%);
+    font-size: 13px; color: #ffd9a0; letter-spacing: 2px; }
+  #respect-bar { position: absolute; top: 108px; left: 50%; transform: translateX(-50%);
+    width: 220px; height: 8px; background: rgba(255,255,255,.18); border-radius: 4px; overflow: hidden; }
+  #respect-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #ff9a3c, #ffd23e); }
+  #respect-label { position: absolute; top: 120px; left: 50%; transform: translateX(-50%);
+    font-size: 11px; letter-spacing: 2px; color: #ffd23e; }
+  #race-timer { position: absolute; top: 146px; left: 50%; transform: translateX(-50%);
+    font-size: 16px; font-weight: 800; color: #fff; background: rgba(10,14,24,.72);
+    border: 1px solid rgba(255,255,255,.25); border-radius: 8px; padding: 6px 14px; display: none; }
+  #minimap { position: absolute; left: 14px; bottom: 14px; width: 180px; height: 180px;
+    border-radius: 50%; border: 3px solid rgba(255,255,255,.35); background: rgba(10,20,30,.85); }
+  #crew-box { position: absolute; left: 14px; bottom: 204px; font-size: 12px; font-weight: 700;
+    color: #c9f2d4; }
+  #health-bar { position: absolute; left: 206px; bottom: 22px; width: 170px; height: 12px;
+    background: rgba(255,255,255,.2); border-radius: 6px; overflow: hidden; }
+  #health-fill { height: 100%; width: 100%; background: linear-gradient(90deg, #37d67a, #7dff9a); }
+  #speed { position: absolute; right: 16px; bottom: 16px; font-size: 30px; font-weight: 800;
+    color: #fff; text-shadow: 0 2px 8px rgba(0,0,0,.8); }
+  #weapon-box { position: absolute; right: 16px; bottom: 58px; font-size: 13px; font-weight: 800;
+    color: #ffd23e; text-align: right; }
+  #radio-box { position: absolute; right: 16px; bottom: 96px; font-size: 12px; font-weight: 700;
+    color: #ffb3d9; text-align: right; }
+  #garage-hint, #bribe-hint, #spike-warning { position: absolute; left: 50%; transform: translateX(-50%);
+    font-size: 14px; font-weight: 800; padding: 6px 14px; border-radius: 8px; display: none; }
+  #garage-hint { bottom: 120px; background: rgba(255,154,60,.9); color: #201200; }
+  #bribe-hint { bottom: 156px; background: rgba(77,163,255,.9); color: #06121f; }
+  #spike-warning { bottom: 192px; background: rgba(255,60,60,.92); color: #fff; }
+  #lockpick-bar { position: absolute; left: 50%; bottom: 230px; transform: translateX(-50%);
+    width: 240px; height: 10px; background: rgba(255,255,255,.2); border-radius: 5px;
+    overflow: hidden; display: none; }
+  #lockpick-fill { height: 100%; width: 0%; background: #ffd23e; }
+  #hint { position: absolute; left: 50%; bottom: 260px; transform: translateX(-50%);
+    font-size: 13px; color: #ffe9c9; text-shadow: 0 1px 4px rgba(0,0,0,.8); display: none; }
+  #banner { position: absolute; top: 26%; left: 50%; transform: translate(-50%, -50%);
+    text-align: center; display: none; }
+  #banner-title { font-size: 44px; font-weight: 900; letter-spacing: 4px; color: #ffd23e;
+    text-shadow: 0 3px 14px rgba(0,0,0,.85); }
+  #banner-sub { font-size: 17px; color: #fff; text-shadow: 0 2px 8px rgba(0,0,0,.85); margin-top: 6px; }
+  .menu { position: fixed; inset: 0; z-index: 10; display: flex; align-items: center;
+    justify-content: center; background: linear-gradient(160deg, rgba(20,16,40,.88), rgba(60,20,10,.82)); }
+  .menu.hidden { display: none; }
+  .menu-card { max-width: 620px; width: 92%; max-height: 92vh; overflow-y: auto; text-align: center;
+    background: rgba(8, 12, 22, 0.85); border: 1px solid rgba(255, 210, 62, 0.4);
+    border-radius: 14px; padding: 28px 30px; }
+  .menu-card h1 { font-size: 56px; letter-spacing: 10px; color: #ffd23e; }
+  .menu-card h2 { font-size: 30px; letter-spacing: 4px; color: #ffd23e; margin-bottom: 10px; }
+  .menu-card p.sub { color: #ffb98a; margin: 6px 0 18px; font-size: 15px; }
+  .controls { text-align: left; font-size: 13px; line-height: 1.9; color: #e8e2d4;
+    columns: 2; column-gap: 28px; margin: 0 auto 18px; max-width: 520px; }
+  .controls b { color: #ffd23e; }
+  button { pointer-events: auto; cursor: pointer; font: inherit; font-weight: 800; letter-spacing: 1px;
+    color: #201200; background: linear-gradient(180deg, #ffd23e, #ff9a3c); border: none;
+    border-radius: 8px; padding: 12px 26px; margin: 6px 4px; font-size: 15px; }
+  button.ghost { background: rgba(255,255,255,.14); color: #fff; border: 1px solid rgba(255,255,255,.35); }
+  .slot-row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+  #garage-list, #crew-list { text-align: left; font-size: 14px; line-height: 2; color: #e8e2d4; margin: 10px 0; }
+  #district-list { text-align: left; font-size: 13px; line-height: 1.9; color: #dfe9ff; margin: 12px 0; }
+  #district-list .dbar { height: 6px; background: rgba(255,255,255,.18); border-radius: 3px; margin: 2px 0 6px; }
+  #district-list .dbar i { display: block; height: 100%; background: #4da3ff; border-radius: 3px; }
+  .stats { font-size: 13px; color: #c9d6e8; line-height: 1.8; margin-top: 10px; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<div id="hud">
+  <div id="stars"><span>★</span><span>★</span><span>★</span><span>★</span><span>★</span></div>
+  <div id="wanted-label">WANTED</div>
+  <div id="mission-label">MISSION 1/15 — First Gear</div>
+  <div id="objective">Drive to the Ember Garage and meet Mara.</div>
+  <div id="district-box">DOWNTOWN · UNKNOWN 0/100<div id="district-bar"><div id="district-bar-fill"></div></div></div>
+  <div id="money">$500</div>
+  <div id="seagull-box">SEAGULLS 0/12</div>
+  <div id="time">18:42</div>
+  <div id="respect-bar"><div id="respect-fill"></div></div>
+  <div id="respect-label">NOBODY · 0/100</div>
+  <div id="race-timer">0.0s · CHECKPOINT 1/3</div>
+  <canvas id="minimap" width="180" height="180"></canvas>
+  <div id="crew-box">CREW: Mara</div>
+  <div id="health-bar"><div id="health-fill"></div></div>
+  <div id="speed">0 km/h</div>
+  <div id="weapon-box">PISTOL · 1/2/3</div>
+  <div id="radio-box">RADIO OFF</div>
+  <div id="garage-hint">GARAGE — press G</div>
+  <div id="bribe-hint">BRIBE — press B ($500)</div>
+  <div id="spike-warning">⚠ SPIKE STRIP AHEAD</div>
+  <div id="lockpick-bar"><div id="lockpick-fill"></div></div>
+  <div id="hint"></div>
+  <div id="banner"><div id="banner-title"></div><div id="banner-sub"></div></div>
+</div>
+
+<div id="menu-start" class="menu">
+  <div class="menu-card">
+    <h1>SOLMARA</h1>
+    <p class="sub">An open-world crime game — sun-soaked streets, the Vultures, and one driver who owes a debt.</p>
+    <div class="controls">
+      <div><b>W A S D</b> — drive / walk</div>
+      <div><b>Mouse / F</b> — shoot</div>
+      <div><b>E</b> — enter car / lockpick / race start</div>
+      <div><b>Shift</b> — run</div>
+      <div><b>Space</b> — jump</div>
+      <div><b>R</b> — radio station</div>
+      <div><b>G</b> — garage (near Ember Garage)</div>
+      <div><b>C</b> — crew</div>
+      <div><b>B</b> — bribe (near police, wanted ≤ 2)</div>
+      <div><b>1 / 2 / 3</b> — switch weapon</div>
+      <div><b>Esc</b> — pause</div>
+      <div><b>District standing</b> — missions, seagulls &amp; race gold raise it; higher tiers pay more</div>
+    </div>
+    <div class="slot-row">
+      <button id="slot-1">SLOT 1 — EMPTY</button>
+      <button id="slot-2">SLOT 2 — EMPTY</button>
+      <button id="slot-3">SLOT 3 — EMPTY</button>
+    </div>
+    <div><button id="btn-start">START</button><button id="btn-new-game" class="ghost">NEW GAME</button></div>
+  </div>
+</div>
+
+<div id="menu-pause" class="menu hidden">
+  <div class="menu-card">
+    <h2>PAUSED</h2>
+    <div id="district-list"></div>
+    <div class="stats" id="pause-stats"></div>
+    <div>
+      <button id="btn-resume">RESUME</button>
+      <button id="btn-garage">GARAGE</button>
+      <button id="btn-crew">CREW</button>
+    </div>
+    <div class="slot-row">
+      <button id="btn-save-1" class="ghost">SAVE SLOT 1</button>
+      <button id="btn-save-2" class="ghost">SAVE SLOT 2</button>
+      <button id="btn-save-3" class="ghost">SAVE SLOT 3</button>
+    </div>
+    <div><button id="btn-quit" class="ghost">QUIT TO TITLE</button></div>
+  </div>
+</div>
+
+<div id="menu-gameover" class="menu hidden">
+  <div class="menu-card">
+    <h2>BUSTED</h2>
+    <p class="sub">The SMPD caught up with Dante. Solmara never sleeps — try again.</p>
+    <div><button id="btn-retry">RETRY</button></div>
+  </div>
+</div>
+
+<div id="menu-garage" class="menu hidden">
+  <div class="menu-card">
+    <h2>EMBER GARAGE</h2>
+    <div id="garage-list"></div>
+    <div>
+      <button id="btn-repair">REPAIR ($150)</button>
+      <button id="btn-paint">PAINT ($200)</button>
+      <button id="btn-upgrade">UPGRADE</button>
+    </div>
+    <div>
+      <button id="btn-store-car" class="ghost">STORE CURRENT CAR</button>
+      <button id="btn-close-garage" class="ghost">CLOSE</button>
+    </div>
+  </div>
+</div>
+
+<div id="menu-crew" class="menu hidden">
+  <div class="menu-card">
+    <h2>CREW</h2>
+    <div id="crew-list"></div>
+    <div><button id="btn-close-crew" class="ghost">CLOSE</button></div>
+  </div>
+</div>
+
+<script src="./vendor/three.min.js"></script>
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>
