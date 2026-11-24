@@ -154,54 +154,63 @@ function finishRace(G, elapsed) {
 export const MISSIONS = [
   mission({
     id: 1, title: 'First Gear', giver: 'Mara Voss', district: 'downtown',
+    caller: { name: 'Mara Voss', role: 'Fixer', line: 'First job, first rule: the garage is home. Get here in one piece.' },
     brief: 'Drive to the Ember Garage and meet Mara. The debt clock is ticking.',
     objective: 'Drive to the Ember Garage', target: GARAGE_POS, reward: 200,
     onStart(G) { call(G, 'setObjective', 'Drive to the Ember Garage', GARAGE_POS); },
   }),
   mission({
     id: 2, title: 'The Pickup', giver: 'Mara Voss', district: 'port',
+    caller: { name: 'Mara Voss', role: 'Fixer', line: 'Any car, any colour. Just don\'t bring the law with you.' },
     brief: 'Steal a car and deliver it to the port. Any car. Don\'t get cute.',
     objective: 'Steal a car, deliver it to the port', target: PORT_POS, reward: 400,
     onStart(G) { call(G, 'setObjective', 'Steal a car, then deliver it to the port', PORT_POS); },
   }),
   mission({
     id: 3, title: 'Hot Wheels', giver: 'Mara Voss', district: 'downtown',
+    caller: { name: 'Mara Voss', role: 'Fixer', line: 'Two stars, then vanish. Make the cops look stupid.' },
     brief: 'Outrun the law: get to 2 stars, then lose the tail completely.',
     objective: 'Reach 2 stars, then lose the police', target: null, reward: 600,
     onStart(G) { call(G, 'setObjective', 'Reach 2 stars, then lose the police', null); call(G, 'setWanted', 2); },
   }),
   mission({
     id: 4, title: 'The Exchange', giver: 'Mara Voss', district: 'downtown',
+    caller: { name: 'Mara Voss', role: 'Fixer', line: 'Package goes downtown. If it smells like a trap, it is.' },
     brief: 'Deliver the package downtown. It is an ambush — three Vultures wait.',
     objective: 'Deliver the package downtown', target: EXCHANGE_POS, reward: 900,
     onStart(G) { call(G, 'setObjective', 'Deliver the package downtown', EXCHANGE_POS); },
   }),
   mission({
     id: 5, title: 'Air Support', giver: 'Mara Voss', district: 'downtown',
+    caller: { name: 'Mara Voss', role: 'Fixer', line: 'AIR-1 doesn\'t blink. Break line of sight and stay gone.' },
     brief: 'AIR-1 is overhead at 3 stars. Break line of sight and vanish.',
     objective: 'Escape AIR-1 at 3 stars', target: null, reward: 1200,
     onStart(G) { call(G, 'setObjective', 'Escape AIR-1 — lose all wanted stars', null); call(G, 'setWanted', 3); },
   }),
   mission({
     id: 6, title: 'Roadblock Run', giver: 'Mara Voss', district: 'downtown',
+    caller: { name: 'Mara Voss', role: 'Fixer', line: 'Two roadblocks, one pedal. Don\'t lift.' },
     brief: 'Smash through 2 SMPD roadblocks. Keep your foot down.',
     objective: 'Smash through 2 roadblocks', target: null, reward: 1500,
     onStart(G) { call(G, 'setObjective', 'Smash through 2 roadblocks', null); call(G, 'setWanted', 3); },
   }),
   mission({
     id: 7, title: 'The Heist', giver: 'Mara Voss', district: 'downtown',
+    caller: { name: 'Mara Voss', role: 'Fixer', line: 'Bank\'s got the money. Bring it home and we eat.' },
     brief: 'Rob the Solmara Bank, then get the money back to the Ember Garage.',
     objective: 'Rob the Solmara Bank', target: BANK_POS, reward: 2500,
     onStart(G) { call(G, 'setObjective', 'Rob the Solmara Bank', BANK_POS); },
   }),
   mission({
     id: 8, title: 'Payback', giver: 'Mara Voss', district: 'port',
+    caller: { name: 'Mara Voss', role: 'Fixer', line: 'Five Vultures at the port. Rook\'s boys don\'t get second chances.' },
     brief: 'Take down Silas Rook\'s crew at the port. Five Vultures. No mercy.',
     objective: 'Take down 5 Vultures at the port', target: PORT_POS, reward: 4000,
     onStart(G) { call(G, 'setObjective', 'Take down 5 Vultures at the port', PORT_POS); },
   }),
   mission({
     id: 9, title: 'Clean Getaway', giver: 'Mara Voss', district: 'downtown',
+    caller: { name: 'Mara Voss', role: 'Fixer', line: 'Five stars. Whole city hunting. Make them regret it.' },
     brief: 'Five stars. The whole city is hunting you. Escape it clean.',
     objective: 'Escape a 5-star wanted level', target: null, reward: 5000,
     onStart(G) { call(G, 'setObjective', 'Escape a 5-star wanted level', null); call(G, 'setWanted', 5); },
@@ -209,6 +218,7 @@ export const MISSIONS = [
   }),
   mission({
     id: 10, title: 'New Blood', giver: 'Mara Voss', district: 'hills',
+    caller: { name: 'Jax Calloway', role: 'Crew — Driver', line: 'You the pickup? Drive like you mean it, I got your back.' },
     brief: 'Pick up Jax Calloway in the north hills during a 2-star chase, then lose the tail.',
     objective: 'Pick up Jax in the north hills', target: HILLS_POS, reward: 5500,
     onStart(G) { call(G, 'setObjective', 'Pick up Jax in the north hills', HILLS_POS); },
@@ -216,6 +226,7 @@ export const MISSIONS = [
   }),
   mission({
     id: 11, title: 'Ghost Ride', giver: 'Mara Voss', district: 'port',
+    caller: { name: 'Lena', role: 'Crew — Wheelwoman', line: 'That\'s my car. One scratch and you\'re walking home.' },
     brief: 'Midnight port run: deliver Lena\'s car to the Ember Garage without a scratch.',
     objective: 'Deliver Lena\'s car to the Ember Garage', target: PORT_POS, reward: 6500,
     onStart(G) { call(G, 'setObjective', 'Pick up Lena\'s car at the port', PORT_POS); },
@@ -223,6 +234,7 @@ export const MISSIONS = [
   }),
   mission({
     id: 12, title: 'King of Solmara', giver: 'Mara Voss', district: 'port',
+    caller: { name: 'Mara Voss', role: 'Fixer', line: 'Gold convoy at the port. This is the one that makes us kings.' },
     brief: 'Steal the Vultures\' gold convoy truck at the port, survive 5 stars, deliver the gold.',
     objective: 'Steal the gold convoy truck', target: PORT_POS, reward: 8000,
     onStart(G) { call(G, 'setObjective', 'Steal the gold convoy truck at the port', PORT_POS); },
@@ -237,6 +249,7 @@ export const MISSIONS = [
   }),
   mission({
     id: 13, title: 'Street Kings', giver: 'Mara Voss', district: 'downtown',
+    caller: { name: 'Jax Calloway', role: 'Crew — Driver', line: 'Three rings, ninety seconds. Don\'t let that red car beat you.' },
     brief: 'Race 3 checkpoint rings downtown in 90s against a Vultures rival car. Win and the streets are yours.',
     objective: 'Win the downtown race (3 checkpoints, 90s)', target: RACE_POINTS[0], reward: 6000,
     onStart(G) {
@@ -256,6 +269,7 @@ export const MISSIONS = [
   }),
   mission({
     id: 14, title: 'Silent Harbor', giver: 'Mara Voss', district: 'port',
+    caller: { name: 'Lena', role: 'Crew — Wheelwoman', line: 'Quiet, yeah? One siren and the ledger\'s worthless.' },
     brief: 'Reach the port office, hold E for 3s to pick the lock, grab the ledger, return to the garage — never hit 2 stars.',
     objective: 'Pick the lock at the port office', target: OFFICE_POS, reward: 7500,
     onStart(G) {
@@ -266,6 +280,7 @@ export const MISSIONS = [
   }),
   mission({
     id: 15, title: 'End of the Vultures', giver: 'Mara Voss', district: 'port',
+    caller: { name: 'Mara Voss', role: 'Fixer', line: 'Rook ends tonight. Finish it and Solmara is ours.' },
     brief: 'Finale: assault the Vultures\' compound, chase Rook\'s fleeing car, finish him on foot.',
     objective: 'Assault the Vultures\' compound', target: COMPOUND_POS, reward: 12000,
     onStart(G) { call(G, 'setObjective', 'Assault the Vultures\' compound', COMPOUND_POS); },

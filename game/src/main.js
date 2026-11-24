@@ -4,6 +4,7 @@
 import { CONFIG } from './config.js';
 import { buildCity, randomRoadPos, clampToCity } from './city.js';
 import { initDistrictStanding, updateDistrictStanding } from './districtStanding.js';
+import { initPresence, updatePresence } from './presence.js';
 import { initInput, updateInput } from './input.js';
 import { initPlayer, updatePlayer } from './player.js';
 import { makeCar, initVehicles, updateVehicles } from './vehicles.js';
@@ -87,6 +88,7 @@ initCrew(G);
 initGarage(G);
 initRespect(G);
 initDistrictStanding(G);
+initPresence(G);
 initCollectibles(G);
 initCombat(G);
 initEffects(G);
@@ -168,6 +170,7 @@ function frame() {
     updateGarage(G, dt);
     updateRespect(G, dt);
     updateDistrictStanding(G, dt);
+    updatePresence(G, dt);
     updateCollectibles(G, dt);
     updateCombat(G, dt);
     updateEffects(G, dt);

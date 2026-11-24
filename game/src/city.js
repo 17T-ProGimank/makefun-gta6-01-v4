@@ -65,6 +65,27 @@ function checkerTexture() {
   return new THREE.CanvasTexture(canvas);
 }
 
+// Soft cloud sprite: a few overlapping radial blobs on a transparent
+// canvas, shared by every cloud billboard below.
+function cloudTexture() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 256; canvas.height = 128;
+  const ctx = canvas.getContext('2d');
+  // Dense overlapping blobs: the first version's sparse puffs (mean alpha
+  // ~25%) washed out against the orange sky — the plane read as a faint
+  // glow, not a cloud. Full coverage with near-opaque cores.
+  const blobs = [[40, 80, 58], [90, 55, 66], [140, 85, 62], [190, 60, 66], [222, 90, 52], [115, 98, 56], [160, 48, 46], [65, 102, 42], [205, 105, 44]];
+  for (const [x, y, r] of blobs) {
+    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, 'rgba(255,246,232,1)');
+    g.addColorStop(0.55, 'rgba(255,246,232,0.95)');
+    g.addColorStop(1, 'rgba(255,246,232,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+  }
+  return new THREE.CanvasTexture(canvas);
+}
+
 // District lookup: Pillar-1 rectangles, precedence BEACH -> HILLS -> PORT
 // -> WESTSIDE -> DOWNTOWN (the order of DISTRICTS in config.js). Defensive
 // default is 'downtown'.
@@ -233,6 +254,58 @@ export function buildCity(G) {
   sun.shadow.camera.far = 600;
   G.scene.add(sun);
   G.scene.add(sun.target);
+
+  // Sky props (round 7, fix G): the sun disc + clouds must sit INSIDE the
+  // framed shots' frustums (FOV 62). Cameras: cover looks NW from (58,5,16),
+  // mission looks ESE from (148,16,-30), activity looks S from (-56,3,164),
+  // city aerial looks S-down from (0,95,-72). No single western sun is
+  // visible in all four (mission/activity/city all face away from the west),
+  // so the low-west sun disc sits on the cover camera's NW axis, and the
+  // clouds are spread one pair per view axis: NW for cover, ESE for the
+  // mission compound, S over the bay for activity + the aerial.
+  // fog:false — the fog range (180-420) would wash them out at this distance.
+  const sunDisc = new THREE.Mesh(
+    new THREE.CircleGeometry(16, 32),
+    new THREE.MeshBasicMaterial({ color: 0xffe9a8, fog: false })
+  );
+  sunDisc.position.set(-200, 70, -40);
+  sunDisc.lookAt(0, 20, 0);
+  G.scene.add(sunDisc);
+  const sunGlow = new THREE.Mesh(
+    new THREE.CircleGeometry(28, 32),
+    new THREE.MeshBasicMaterial({ color: 0xffc27a, transparent: true, opacity: 0.35, fog: false })
+  );
+  sunGlow.position.set(-201, 70, -40);
+  sunGlow.lookAt(0, 20, 0);
+  G.scene.add(sunGlow);
+  const cloudTex = cloudTexture();
+  const cloudMat = new THREE.MeshBasicMaterial({
+    map: cloudTex, transparent: true, opacity: 0.9,
+    depthWrite: false, fog: false, side: THREE.DoubleSide,
+  });
+  // Each cloud is two crossed planes: the vertical one reads from ground
+  // cameras, the horizontal one from the aerial shot.
+  const clouds = [
+    { x: -70, y: 55, z: -100, w: 58 }, // cover: NW axis, near
+    { x: -140, y: 70, z: -160, w: 68 }, // cover: NW axis, far
+    { x: 215, y: 24, z: -100, w: 62 }, // mission: ESE of the compound
+    { x: 260, y: 30, z: -130, w: 72 }, // mission: ESE, far
+    { x: -55, y: 28, z: 250, w: 62 }, // activity: S over the bay, on-axis
+    { x: 30, y: 40, z: 220, w: 72 }, // city aerial: S over the bay
+  ];
+  G.city = G.city || {};
+  G.city.clouds = [];
+  for (const c of clouds) {
+    const v = new THREE.Mesh(new THREE.PlaneGeometry(c.w, c.w / 2), cloudMat);
+    v.position.set(c.x, c.y, c.z);
+    v.rotation.y = Math.atan2(-c.x, -c.z); // face the city centre
+    group.add(v);
+    const h = new THREE.Mesh(new THREE.PlaneGeometry(c.w, c.w / 2), cloudMat);
+    h.rotation.x = -Math.PI / 2;
+    h.position.set(c.x, c.y - 3, c.z);
+    group.add(h);
+    G.city.clouds.push(v, h);
+  }
 
   // Ground, sand strip and sea.
   const ground = new THREE.Mesh(

@@ -6,7 +6,10 @@
 // of travel direction, 12s timer; driving over one slows the car 10s) and
 // bribe (on foot, wanted 1–2, within 8 units of a cruiser, press B: -$500,
 // -1 star, once per wanted episode). Round 6 adds a translucent searchlight
-// cone under the heli, visible at >=3 stars. Everything defensive: no crash
+// cone under the heli, visible at >=3 stars. Round 7 adds a naming layer:
+// every unit gets a callsign + role at spawn and a tactic label derived
+// from behaviour each frame (unit.callsign / unit.role / unit.tactic —
+// read by presence.js to render the dispatch board). Everything defensive: no crash
 // if helpers, THREE, or the player are absent.
 
 function helpers(G) { return (G && G.helpers) || {}; }
@@ -34,6 +37,39 @@ function carPos(car) {
 }
 function three() {
   try { return (typeof globalThis !== 'undefined' && globalThis.THREE) || null; } catch (e) { return null; }
+}
+
+// --- Round 7 naming layer: callsign + role per unit, tactic from behaviour ---
+const CALLSIGNS = [
+  { callsign: 'CRUISER-11', role: 'PATROL' },
+  { callsign: 'INTERCEPTOR-07', role: 'INTERCEPTOR' },
+  { callsign: 'RAMMER-03', role: 'RAMMER' },
+  { callsign: 'CRUISER-22', role: 'PATROL' },
+  { callsign: 'INTERCEPTOR-19', role: 'INTERCEPTOR' },
+  { callsign: 'CRUISER-31', role: 'PATROL' },
+];
+function nameUnit(G, unit) {
+  const P = G && G.police;
+  const seq = P ? (P.unitSeq = (P.unitSeq || 0) + 1) : 1;
+  const tag = CALLSIGNS[(seq - 1) % CALLSIGNS.length];
+  unit.callsign = tag.callsign;
+  unit.role = tag.role;
+  unit.tactic = 'PURSUIT';
+}
+function updateTactics(G, p, wanted) {
+  const P = G && G.police;
+  if (!P) return;
+  const roadblockActive = P.roadblocks.length > 0 || P.spikeStrips.length > 0;
+  for (const car of P.cars) {
+    const cp = carPos(car);
+    let d = Infinity;
+    if (cp && p) { const dx = p.x - cp.x, dz = p.z - cp.z; d = Math.sqrt(dx * dx + dz * dz); }
+    const speed = 16 + (wanted || 0) * 2.5; // same chase speed as the loop below
+    if (roadblockActive) car.tactic = 'ROADBLOCK';
+    else if (d < 15 || (speed >= 26 && d < 30)) car.tactic = 'RAMMING';
+    else car.tactic = 'PURSUIT';
+  }
+  if (P.heli) P.heli.tactic = 'SPOTLIGHT';
 }
 
 function makePoliceCarMesh(G, color) {
@@ -183,7 +219,7 @@ export function initPolice(G) {
   G.police = {
     cars: [], heli: null, roadblocks: [], spikeStrips: [],
     bribed: false, arrestTimer: 0, spawnTimer: 0, blockTimer: 0,
-    spikeTimer: 0, decayTimer: 0, prevB: false, prevSiren: 0,
+    spikeTimer: 0, decayTimer: 0, prevB: false, prevSiren: 0, unitSeq: 0,
   };
   if (G.state) {
     G.state.spikeAhead = false;
@@ -204,6 +240,7 @@ function spawnPoliceCar(G, p) {
     kind: 'police', color: 0x1a2a4a, heading: 0, speed: 0,
     pos: null, group: null, mesh: null,
   };
+  nameUnit(G, car); // round 7: callsign + role at spawn, tactic PURSUIT until derived
   // Spawn behind / beside the player on a nearby road, not on top of them.
   const angle = Math.random() * Math.PI * 2;
   const sx = p.x + Math.cos(angle) * 45, sz = p.z + Math.sin(angle) * 45;
@@ -228,7 +265,14 @@ function updateHeli(G, dt, p, wanted) {
     }
     return;
   }
-  if (!G.police.heli) G.police.heli = makeHeli(G);
+  if (!G.police.heli) {
+    G.police.heli = makeHeli(G);
+    if (G.police.heli) { // round 7: the heli is a named unit too
+      G.police.heli.callsign = 'AIR-1';
+      G.police.heli.role = 'AIR SUPPORT';
+      G.police.heli.tactic = 'SPOTLIGHT';
+    }
+  }
   const heli = G.police.heli;
   if (!heli || !heli.group || !p) return;
   const t = (G.state && typeof G.state.time === 'number') ? G.state.time : 0;
@@ -236,6 +280,7 @@ function updateHeli(G, dt, p, wanted) {
   const hx = p.x + Math.cos(ang) * 30;
   const hz = p.z + Math.sin(ang) * 30;
   heli.group.position.set(hx, 42, hz);
+  heli.pos = { x: hx, z: hz }; // so the dispatch board can show its distance
   heli.group.rotation.y = -ang;
   if (heli.rotor) heli.rotor.rotation.y = t * 18;
   // Searchlight cone follows the heli and is only visible at >=3 stars.
@@ -387,6 +432,9 @@ export function updatePolice(G, dt) {
     }
   }
   P.prevB = bDown;
+
+  // --- Round 7: refresh every unit's tactic label from current behaviour ---
+  updateTactics(G, p, wanted);
 }
 
 function garagePos(G) {

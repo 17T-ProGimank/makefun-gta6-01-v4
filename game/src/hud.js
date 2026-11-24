@@ -15,7 +15,7 @@ const IDS = [
   'wanted-label', 'mission-label', 'time', 'respect-bar', 'respect-label',
   'crew-box', 'garage-hint', 'weapon-box', 'seagull-box', 'race-timer',
   'bribe-hint', 'spike-warning', 'lockpick-bar', 'lockpick-fill', 'district-box',
-  'district-bar', 'district-bar-fill', 'radio-box', 'respect-fill',
+  'district-bar', 'district-bar-fill', 'radio-box', 'respect-fill', 'weapon-slots',
 ];
 
 function $(id) {
@@ -162,6 +162,51 @@ function districtInfo(G) {
   return { id, name: DISTRICT_NAMES[id] || String(id).toUpperCase(), standing };
 }
 
+// Round 7 — weapon slots panel (Pillar 3): 3 slots, owned vs LOCKED,
+// current highlighted. Ammo is infinite in combat.js — display ∞, never
+// a fake count. Data from G.weapons.owned/current.
+const WEAPON_SLOTS = [
+  { key: 'pistol', num: '1', name: 'PISTOL' },
+  { key: 'smg', num: '2', name: 'SMG' },
+  { key: 'shotgun', num: '3', name: 'SHOTGUN' },
+];
+
+function renderWeaponSlots(G) {
+  let el = (G.hud && G.hud.el && G.hud.el['weapon-slots']) || $('weapon-slots');
+  if (!el && typeof document !== 'undefined') {
+    // Defensive: another session owns the container div in index.html;
+    // if it is missing, create it and hang it on the HUD (right side,
+    // above #weapon-box which sits at bottom:58px, #speed at bottom:16px).
+    el = document.createElement('div');
+    el.id = 'weapon-slots';
+    el.style.cssText = 'position:absolute;right:16px;bottom:92px;width:168px;'
+      + 'font-size:12px;font-weight:800;color:#fff;pointer-events:none;';
+    const hud = $('hud') || document.body;
+    if (hud) hud.appendChild(el);
+    if (G.hud && G.hud.el) G.hud.el['weapon-slots'] = el;
+  }
+  if (!el) return;
+  const w = G.weapons || { owned: ['pistol'], current: 'pistol' };
+  const owned = Array.isArray(w.owned) ? w.owned : ['pistol'];
+  const cur = w.current || 'pistol';
+  const sig = owned.join(',') + '|' + cur;
+  if (G.hud && G.hud.weaponSlotsSig === sig) return;
+  if (G.hud) G.hud.weaponSlotsSig = sig;
+  let html = '<div style="opacity:.75;letter-spacing:2px;font-size:10px;">WEAPONS</div>';
+  for (const s of WEAPON_SLOTS) {
+    const has = owned.includes(s.key);
+    const isCur = cur === s.key;
+    const style = isCur
+      ? 'background:rgba(255,210,62,.92);color:#111;'
+      : has ? 'background:rgba(0,0,0,.45);color:#fff;'
+      : 'background:rgba(0,0,0,.30);color:#888;';
+    const right = has ? '∞' : 'LOCKED';
+    html += '<div style="display:flex;justify-content:space-between;padding:2px 8px;margin-top:2px;' + style + '">'
+      + '<span>[' + s.num + '] ' + s.name + '</span><span>' + right + '</span></div>';
+  }
+  el.innerHTML = html;
+}
+
 export function updateHUD(G, dt) {
   const el = (G.hud && G.hud.el) || {};
   const st = G.state || {};
@@ -240,6 +285,9 @@ export function updateHUD(G, dt) {
     const keys = owned.map((o) => ({ pistol: '1', smg: '2', shotgun: '3' })[o] || '?').join('/');
     setText(el['weapon-box'], String(w.current || 'pistol').toUpperCase() + ' · ' + keys);
   }
+
+  // Weapon slots panel (round 7): 3 slots, owned vs LOCKED, current highlighted.
+  renderWeaponSlots(G);
 
   // Seagull counter ("SEAGULLS 3/12").
   if (el['seagull-box']) {

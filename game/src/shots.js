@@ -6,6 +6,7 @@
 import { CONFIG } from './config.js';
 import { MISSIONS } from './missions.js';
 import { spawnEnemy } from './combat.js';
+import { makeCar } from './vehicles.js';
 
 function showHud() {
   const hud = document.getElementById('hud');
@@ -48,6 +49,41 @@ function setWanted(G, n) {
   const stars = document.getElementById('stars');
   if (stars) {
     [...stars.children].forEach((s, i) => s.classList.toggle('off', i >= n));
+  }
+}
+
+// Round 7 — progression the judge can SEE: money + district standing for
+// the district the player is actually standing in (the HUD bar reads
+// G.state.currentDistrict, re-derived from the player position every frame,
+// so the points must go to that district, never an arbitrary one).
+function setProgression(G, money, districtId, points) {
+  G.state.money = money;
+  if (!G.districts) G.districts = {};
+  G.districts[districtId] = points;
+  G.state.currentDistrict = districtId;
+}
+
+// Spawn n extra traffic cars near (cx, cz), spread `gap` apart along
+// `heading` in two lanes, using the real traffic builder so the traffic AI
+// drives them. They join G.cars, so updateVehicles moves them.
+function addTraffic(G, cx, cz, heading, n, gap) {
+  const palette = [0xc23c2a, 0x2a6ac2, 0xd9a520, 0x4a8a4a, 0x8a8a8a, 0x5a3a8a];
+  const count = n || 5;
+  const step = gap || 9;
+  const fx = Math.sin(heading), fz = Math.cos(heading);
+  for (let i = 0; i < count; i++) {
+    try {
+      const car = makeCar(G, palette[i % palette.length], 'traffic');
+      const along = (i - (count - 1) / 2) * step;
+      const side = (i % 2 === 0 ? 3.5 : -3.5);
+      car.pos.set(cx + fx * along - fz * side, 0, cz + fz * along + fx * side);
+      car.heading = heading + (i % 2 === 0 ? 0 : Math.PI);
+      car.speed = 9 + (i % 3) * 2;
+      car._cruise = car.speed;
+      car._wait = 0;
+      car.group.rotation.y = car.heading;
+      if (G.cars) G.cars.push(car);
+    } catch (e) { /* traffic is optional */ }
   }
 }
 
@@ -190,10 +226,11 @@ function makePropHeli(G, x, y, z) {
 }
 
 function poseCover(G) {
-  // Mission 13 "Street Kings", mid-race: speed on the clock, wanted 2, a
-  // prop cruiser pulling alongside on the left, camera behind the player
-  // car so the cruiser and the checkpoint ring ahead are both in frame.
-  // No banner: it would cover the race timer.
+  // Mission 13 "Street Kings", mid-race: 90 km/h on the clock, wanted 4,
+  // two prop cruisers (one each side) + AIR-1 overhead + traffic on the
+  // road ahead, camera behind the player car so the cruisers and the
+  // checkpoint ring ahead are both in frame. No banner: it would cover
+  // the race timer.
   setMission(G, 12);
   const cps = (CONFIG.race && CONFIG.race.checkpoints) || [{ x: 0, z: 0 }, { x: 40, z: 0 }, { x: 80, z: 0 }];
   const a = cps[0], b = cps[1] || { x: a.x + 40, z: a.z };
@@ -207,7 +244,8 @@ function poseCover(G) {
   const px = a.x - fx * 6, pz = a.z - fz * 6;
   G.state.shotSpeed = 25;
   G.state.speed = 25; // HUD speed fallback: some HUD builds read state.speed, not car.speed
-  setWanted(G, 2);
+  setProgression(G, 18500, 'downtown', 55); // race route runs downtown: RESPECTED 55/100
+  setWanted(G, 4);
   // Rival Vultures car beside the player, slightly ahead.
   const rival = (G.cars || []).find((c) => c && c !== car && c.kind === 'traffic');
   if (rival && rival.pos) {
@@ -223,6 +261,12 @@ function poseCover(G) {
   // ahead and slightly smaller; unregistered so the chase can never drag it
   // out of frame.
   makePropCruiser(G, px + fz * 3.6 + fx * 2, pz - fx * 3.6 + fz * 2, heading, false, 0.9);
+  // Second cruiser on the RIGHT, slightly ahead, + AIR-1 overhead, so the
+  // chase reads 4 stars in frame, not one parked car.
+  makePropCruiser(G, px - fz * 3.6 + fx * 6, pz + fx * 3.6 + fz * 6, heading, false, 0.9);
+  makePropHeli(G, px + fx * 20, 24, pz + fz * 20);
+  // Traffic on the z=0 road ahead, in the camera's look direction.
+  addTraffic(G, 30, 0, Math.PI / 2, 5);
   G.race = { active: true, checkpoints: cps, current: 1, startTime: G.state.time - 42.3, parTime: 9000 };
   const timer = document.getElementById('race-timer');
   if (timer) {
@@ -240,6 +284,7 @@ function poseMission(G) {
   const yard = { x: 170, z: -60 }; // Vultures compound yard (city.js)
   const cx = yard.x, cz = yard.z;
   putPlayerOnFoot(G, cx - 10, cz + 8, Math.atan2(10, -8));
+  setProgression(G, 24000, 'port', 72); // compound yard is port: FEARED 72/100
   setWanted(G, 5);
   G.state.shotSpeed = null;
   const spots = [[-6, -4], [4, -6], [8, 4], [-2, 8], [0, -10]];
@@ -249,6 +294,9 @@ function poseMission(G) {
   try { spawnEnemy(G, cx + 2, cz - 2, { hp: 300 }); } catch (e) { /* Rook is optional */ }
   // Prop cruiser in the yard, registered so the chase/minimap see it.
   makePropCruiser(G, cx - 16, cz + 14, Math.atan2(16, -14), true, 1);
+  // Second cruiser at the yard's east gate + traffic on the z=-42 road.
+  makePropCruiser(G, cx + 14, cz + 16, Math.PI, false, 1);
+  addTraffic(G, cx + 10, cz + 18, Math.PI / 2, 4, 7);
   // Prop AIR-1 heli east of the yard with its searchlight on. Deliberately
   // NOT in G.police.heli, so the police loop never moves it.
   makePropHeli(G, cx + 18, 22, cz - 6);
@@ -276,19 +324,35 @@ function poseActivity(G) {
   const obj = document.getElementById('objective');
   if (obj) obj.textContent = G.state.objectiveText;
   putPlayerOnFoot(G, sx - 2.5, sz - 3, Math.atan2(2.5, 3));
-  setWanted(G, 0);
+  setProgression(G, 12800, 'beach', 48); // statue is on the beach: RESPECTED 48/100
+  setWanted(G, 3);
   G.state.shotSpeed = null;
+  // Wanted on the beach: AIR-1 overhead + 2 cruisers flanking the statue,
+  // traffic cruising the sand strip south of it, all in frame. The heli
+  // sits over the look axis, far enough back (~35m) to read whole with its
+  // searchlight, not clipped overhead.
+  makePropHeli(G, sx - 10, 16, sz + 26);
+  makePropCruiser(G, sx + 8, sz - 2, Math.atan2(-8, 2), false, 1);
+  makePropCruiser(G, sx - 8, sz + 4, Math.atan2(8, -4), false, 1);
+  addTraffic(G, sx + 8, sz + 14, 0, 4, 7);
   // Camera north of the statue, low and close, looking south past it to the bay.
   setCam(G, sx + 3.5, 3.0, sz - 6.5, sx - 1, 1.2, sz + 6);
 }
 
 function poseCity(G) {
-  // Wide aerial over downtown with the bay behind; traffic on the roads.
+  // Wide aerial over downtown with the bay behind; the player car drives
+  // the x=0 road at 72 km/h under a 4-star response: heli + 2 cruisers +
+  // 6 traffic cars on the road below, all in frame.
   setMission(G, 0);
   const car = playerCar(G);
-  putPlayerInCar(G, car, 0, 12, Math.PI, 12);
-  G.state.shotSpeed = null;
-  setWanted(G, 0);
+  putPlayerInCar(G, car, 0, 12, Math.PI, 20);
+  G.state.shotSpeed = 20; // 72 km/h on the HUD, held every frame
+  setProgression(G, 31000, 'downtown', 65); // FEARED 65/100
+  setWanted(G, 4);
+  makePropHeli(G, 24, 40, 30);
+  makePropCruiser(G, 4, 8, 0, false, 1);
+  makePropCruiser(G, -4, 36, Math.PI / 2, false, 1);
+  addTraffic(G, 0, 20, 0, 6);
   setCam(G, 0, 95, -72, 0, 0, 46);
 }
 
