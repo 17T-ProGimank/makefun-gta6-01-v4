@@ -94,6 +94,9 @@ export function initMenus(G) {
   // --- Banner + hint helpers (attached for other modules) ---
   if (G.helpers) {
     G.helpers.showBanner = (title, sub) => {
+      // Round 8 — cover pose: the SPIKE STRIP! centre banner would cover
+      // the race checkpoint pill; the "SPIKE STRIP AHEAD" pill stays.
+      if (G.state && G.state.suppressSpikeBanner && title === 'SPIKE STRIP!') return;
       const b = $('banner'), t = $('banner-title'), s = $('banner-sub');
       if (t) t.textContent = title || '';
       if (s) s.textContent = sub || '';

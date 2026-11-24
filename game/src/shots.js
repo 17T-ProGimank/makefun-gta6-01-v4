@@ -61,6 +61,11 @@ function setProgression(G, money, districtId, points) {
   if (!G.districts) G.districts = {};
   G.districts[districtId] = points;
   G.state.currentDistrict = districtId;
+  // Round 8 — overall respect must agree with the district tier the HUD
+  // shows (RESPECTED 48–59 -> MADE ~900; FEARED 60–79 -> SHOT CALLER
+  // ~1600), or the centre-top bar reads NOBODY next to a FEARED district
+  // box. Direct assignment only — addRespect would fire a RANK UP banner.
+  if (G.respect) G.respect.points = points >= 60 ? 1600 : 900;
 }
 
 // Spawn n extra traffic cars near (cx, cz), spread `gap` apart along
@@ -246,6 +251,10 @@ function poseCover(G) {
   G.state.speed = 25; // HUD speed fallback: some HUD builds read state.speed, not car.speed
   setProgression(G, 18500, 'downtown', 55); // race route runs downtown: RESPECTED 55/100
   setWanted(G, 4);
+  // Round 8 — suppress the SPIKE STRIP! centre banner in the cover pose:
+  // it would cover the race checkpoint pill and timer. The
+  // "SPIKE STRIP AHEAD" pill in hud.js stays.
+  G.state.suppressSpikeBanner = true;
   // Rival Vultures car beside the player, slightly ahead.
   const rival = (G.cars || []).find((c) => c && c !== car && c.kind === 'traffic');
   if (rival && rival.pos) {
@@ -331,7 +340,10 @@ function poseActivity(G) {
   // traffic cruising the sand strip south of it, all in frame. The heli
   // sits over the look axis, far enough back (~35m) to read whole with its
   // searchlight, not clipped overhead.
-  makePropHeli(G, sx - 10, 16, sz + 26);
+  // Round 8 — heli sits right of the look axis (camera faces south, so
+  // -x is screen-right) so it never covers the centred wanted stars /
+  // WANTED label, still whole in frame with its searchlight.
+  makePropHeli(G, sx - 28, 15, sz + 26);
   makePropCruiser(G, sx + 8, sz - 2, Math.atan2(-8, 2), false, 1);
   makePropCruiser(G, sx - 8, sz + 4, Math.atan2(8, -4), false, 1);
   addTraffic(G, sx + 8, sz + 14, 0, 4, 7);

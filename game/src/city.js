@@ -77,8 +77,8 @@ function cloudTexture() {
   const blobs = [[40, 80, 58], [90, 55, 66], [140, 85, 62], [190, 60, 66], [222, 90, 52], [115, 98, 56], [160, 48, 46], [65, 102, 42], [205, 105, 44]];
   for (const [x, y, r] of blobs) {
     const g = ctx.createRadialGradient(x, y, 0, x, y, r);
-    g.addColorStop(0, 'rgba(255,246,232,1)');
-    g.addColorStop(0.55, 'rgba(255,246,232,0.95)');
+    g.addColorStop(0, 'rgba(255,246,232,0.5)');
+    g.addColorStop(0.55, 'rgba(255,246,232,0.75)');
     g.addColorStop(1, 'rgba(255,246,232,0)');
     ctx.fillStyle = g;
     ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
@@ -280,7 +280,7 @@ export function buildCity(G) {
   G.scene.add(sunGlow);
   const cloudTex = cloudTexture();
   const cloudMat = new THREE.MeshBasicMaterial({
-    map: cloudTex, transparent: true, opacity: 0.9,
+    map: cloudTex, transparent: true, opacity: 0.3,
     depthWrite: false, fog: false, side: THREE.DoubleSide,
   });
   // Each cloud is two crossed planes: the vertical one reads from ground
@@ -288,9 +288,9 @@ export function buildCity(G) {
   const clouds = [
     { x: -70, y: 55, z: -100, w: 58 }, // cover: NW axis, near
     { x: -140, y: 70, z: -160, w: 68 }, // cover: NW axis, far
-    { x: 215, y: 24, z: -100, w: 62 }, // mission: ESE of the compound
-    { x: 260, y: 30, z: -130, w: 72 }, // mission: ESE, far
-    { x: -55, y: 28, z: 250, w: 62 }, // activity: S over the bay, on-axis
+    { x: 215, y: 48, z: -100, w: 62 }, // mission: ESE of the compound, raised clear of the top HUD band
+    { x: 285, y: 52, z: -130, w: 72 }, // mission: ESE, far, raised clear of the top HUD band
+    { x: -95, y: 48, z: 250, w: 62 }, // activity: S over the bay, shifted left + raised clear of the top HUD band
     { x: 30, y: 40, z: 220, w: 72 }, // city aerial: S over the bay
   ];
   G.city = G.city || {};
