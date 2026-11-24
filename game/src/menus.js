@@ -21,8 +21,31 @@ function $(id) {
   return (typeof document !== 'undefined') ? document.getElementById(id) : null;
 }
 
-function show(el) { if (el) el.style.display = ''; }
-function hide(el) { if (el) el.style.display = 'none'; }
+// Menus are hidden two ways: the `hidden` class (initial state in
+// index.html, `.menu.hidden { display: none }`) and inline display:none.
+// show()/hide() must manage BOTH, or a menu shown with display:'' stays
+// invisible under the class rule — which is also what made the Esc check
+// below misread closed menus as open.
+function show(el) {
+  if (!el) return;
+  if (el.classList) el.classList.remove('hidden');
+  el.style.display = '';
+}
+function hide(el) {
+  if (!el) return;
+  if (el.classList) el.classList.add('hidden');
+  el.style.display = 'none';
+}
+
+// A sub-menu counts as open only if it is actually visible: no `hidden`
+// class and no inline display:none. Reading inline style.display alone
+// misreads a class-hidden menu (style.display === '') as open, so the
+// first Esc press "closed" an already-closed menu instead of pausing.
+function isMenuOpen(el) {
+  if (!el) return false;
+  if (el.classList && el.classList.contains('hidden')) return false;
+  return el.style.display !== 'none';
+}
 
 function fmtTime(secs) {
   const s = Math.max(0, Math.floor(Number(secs) || 0));
@@ -338,8 +361,8 @@ export function updateMenus(G, dt) {
   // Esc closes that menu first instead of unpausing.
   const esc = keys.has('Escape');
   if (esc && !M.prevEsc && st.started && !st.gameOver) {
-    const garageOpen = $('menu-garage') && $('menu-garage').style.display !== 'none';
-    const crewOpen = $('menu-crew') && $('menu-crew').style.display !== 'none';
+    const garageOpen = isMenuOpen($('menu-garage'));
+    const crewOpen = isMenuOpen($('menu-crew'));
     if (garageOpen || crewOpen) {
       hide($('menu-garage'));
       hide($('menu-crew'));
